@@ -37,34 +37,34 @@ func New(
 
 // Start the CI pipeline
 func (m *Ci) Run(ctx context.Context) (imgRefs []string, err error) {
-	cfg := m.Conf
-	if len(cfg.Jobs) == 0 {
-		return []string{}, fmt.Errorf("There are no jobs in the config")
+	if len(m.Conf.Jobs) == 0 {
+		return []string{}, fmt.Errorf("There are no jobs in the config: %v", *m.Conf)
 	}
 
 	// Start a corroutine per job
 	wg := new(sync.WaitGroup)
-	jobsResChan := make(chan JobResult, len(cfg.Jobs))
+	imgRefCh := make(chan string, len(m.Conf.Jobs))
+	errCh := make(chan error, len(m.Conf.Jobs))
 	jobs := []*JobPipeline{}
-	for _, j := range cfg.Jobs {
+	for _, j := range m.Conf.Jobs {
 		jobs = append(jobs, NewJobPipeline(&j, dag.Container()))
 		wg.Add(1)
 	}
 
 	for _, j := range jobs {
-		go func(c chan<- JobResult, wg *sync.WaitGroup) {
-			c <- m.runJob(ctx, j)
+		go func(imgCh chan<- string, errCh chan<- error, wg *sync.WaitGroup) {
+			imgRef, err := m.runJob(ctx, j)
+			imgCh <- imgRef
+			errCh <- err
 			wg.Done()
-		}(jobsResChan, wg)
+		}(imgRefCh, errCh, wg)
 	}
 
 	select {
-	case v := <-jobsResChan:
-		if err := v.Err; err != nil {
-			return []string{}, err
-		} else {
-			imgRefs = append(imgRefs, v.ImgRef)
-		}
+	case v := <-imgRefCh:
+		imgRefs = append(imgRefs, v)
+	case err := <-errCh:
+		return []string{}, err
 	}
 
 	wg.Wait()
@@ -73,7 +73,7 @@ func (m *Ci) Run(ctx context.Context) (imgRefs []string, err error) {
 }
 
 // TODO(Zeg): Parse annotations fields as Go templates
-func (m *Ci) runJob(ctx context.Context, j *JobPipeline) JobResult {
+func (m *Ci) runJob(ctx context.Context, j *JobPipeline) (string, error) {
 	// Prepare build options
 	buildOpts := dagger.ContainerBuildOpts{}
 	if j.Containerfile != "" {
@@ -104,5 +104,5 @@ func (m *Ci) runJob(ctx context.Context, j *JobPipeline) JobResult {
 
 	imgRef, err := ctr.
 		Publish(ctx, fmt.Sprintf("ttl.sh/%s:latest", uuid.NewString()))
-	return JobResult{ImgRef: imgRef, Err: err}
+	return imgRef, err
 }

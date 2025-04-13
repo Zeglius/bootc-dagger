@@ -1,3 +1,5 @@
+// Build and distribute Bootc container images across registries
+// in a sane way.
 package main
 
 import (

@@ -74,10 +74,29 @@ func (m *Ci) Run(ctx context.Context) (imgRefs []string, err error) {
 
 // TODO(Zeg): Parse annotations fields as Go templates
 func (m *Ci) runJob(ctx context.Context, j *JobPipeline) JobResult {
-	// Build image
-	ctr := m.dummyContainer()
+	// Prepare build options
+	buildOpts := dagger.ContainerBuildOpts{}
+	if j.Containerfile != "" {
+		buildOpts.Dockerfile = j.Containerfile
+	} else {
+		buildOpts.Dockerfile = "Dockerfile"
+	}
+	// Set build arguments
+	if len(j.BuildArgs) != 0 {
+		for _, ba := range j.BuildArgs {
+			// build-args is a name=value string, so we need to split
+			k, v, _ := strings.Cut(ba, "=")
+			buildOpts.BuildArgs = append(
+				buildOpts.BuildArgs,
+				dagger.BuildArg{Name: k, Value: v},
+			)
+		}
+	}
 
-	// Add annotations specified
+	// Build image
+	ctr := dag.Container().Build(m.BuildContext, buildOpts)
+
+	// Add annotations
 	for _, a := range j.Annotations {
 		k, v, _ := strings.Cut(a, "=")
 		ctr = ctr.WithAnnotation(k, v)
@@ -86,9 +105,4 @@ func (m *Ci) runJob(ctx context.Context, j *JobPipeline) JobResult {
 	imgRef, err := ctr.
 		Publish(ctx, fmt.Sprintf("ttl.sh/%s:latest", uuid.NewString()))
 	return JobResult{ImgRef: imgRef, Err: err}
-}
-
-// dummyContainer returns a dummy container that acts as placeholder.
-func (*Ci) dummyContainer() *dagger.Container {
-	return dag.Container().From("alpine:latest")
 }

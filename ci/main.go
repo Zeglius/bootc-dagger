@@ -103,6 +103,12 @@ func (m *Ci) runJob(ctx context.Context, j *JobPipeline) ([]string, error) {
 		ctr = ctr.WithAnnotation(k, v)
 	}
 
+	// Add labels
+	for _, l := range j.Labels {
+		k, v, _ := strings.Cut(l, "=")
+		ctr = ctr.WithLabel(k, v)
+	}
+
 	var imgRefs []string
 	for _, t := range j.OutputTags {
 		im, err := ctr.

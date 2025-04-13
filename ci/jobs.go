@@ -22,6 +22,11 @@ type Job struct {
 	// Example:
 	// 	Annotations: []string{"key1=value1", "key2=value2"}
 	Annotations []string `json:"annotations,omitempty"`
+	// Labels are metadata labels that can be added to the container.
+	//
+	// Example:
+	// 	Labels: []string{"key1=value1", "key2=value2"}
+	Labels []string `json:"labels,omitempty"`
 	// OutputName specifies name for the output container image.
 	//
 	// Example:

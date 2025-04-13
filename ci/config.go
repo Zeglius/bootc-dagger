@@ -85,6 +85,28 @@ func (*Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (*Conf, erro
 			}
 			result.Jobs[i].BuildArgs[k] = s.String()
 		}
+
+		// Process annotations
+		for k, annot := range j.Annotations {
+			var s strings.Builder
+			if tmpl, err := tmpl.Parse(annot); err != nil {
+				return nil, err
+			} else {
+				tmpl.Execute(&s, j)
+			}
+			result.Jobs[i].Annotations[k] = s.String()
+		}
+
+		// Process labels
+		for k, label := range j.Labels {
+			var s strings.Builder
+			if tmpl, err := tmpl.Parse(label); err != nil {
+				return nil, err
+			} else {
+				tmpl.Execute(&s, j)
+			}
+			result.Jobs[i].Labels[k] = s.String()
+		}
 	}
 
 	return result, nil

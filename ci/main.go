@@ -47,7 +47,7 @@ func (m *Ci) Run(ctx context.Context) (imgRefs []string, err error) {
 	errCh := make(chan error, len(m.Conf.Jobs))
 	jobs := []*JobPipeline{}
 	for _, j := range m.Conf.Jobs {
-		jobs = append(jobs, NewJobPipeline(&j, dag.Container()))
+		jobs = append(jobs, &JobPipeline{&j, dag.Container()})
 		wg.Add(1)
 	}
 

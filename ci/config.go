@@ -25,7 +25,7 @@ func (m *Ci) WithConfig(
 	cfgFile *dagger.File,
 ) (*Ci, error) {
 
-	m.DockerContext = dir
+	m.BuildContext = dir
 	c, err := m.parseConfFile(ctx, cfgFile)
 	if err != nil {
 		return nil, err

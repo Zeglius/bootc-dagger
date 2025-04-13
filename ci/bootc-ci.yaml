@@ -1,13 +1,16 @@
 jobs:
   - &dummy-job
     containerfile: ./Containerfile
-    output-name: "ttl.sh/dummy"
+    output-name: "ttl.sh/bazzite"
     output-tags: ["1h"]
     build-args:
-      - aaa=ubuntu
+      - BASE_IMAGE=ghcr.io/ublue-os/bazzite:latest
   - <<: *dummy-job
     build-args:
-      - bbb=bbb
+      - BASE_IMAGE=ghcr.io/ublue-os/bazzite-nvidia:latest
   - <<: *dummy-job
     build-args:
-      - BASE_IMAGE=fedora
+      - BASE_IMAGE=ghcr.io/ublue-os/bazzite-gnome:latest
+  - <<: *dummy-job
+    build-args:
+      - BASE_IMAGE=ghcr.io/ublue-os/bazzite-gnome-nvidia:latest

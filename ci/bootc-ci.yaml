@@ -1,6 +1,8 @@
 jobs:
   - &dummy-job
     containerfile: ./Containerfile
+    output-name: "ttl.sh/dummy"
+    output-tags: ["1h"]
     build-args:
       - aaa=ubuntu
   - <<: *dummy-job

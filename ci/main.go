@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-
-	"github.com/google/uuid"
 )
 
 type Ci struct {
@@ -43,7 +41,7 @@ func (m *Ci) Run(ctx context.Context) (imgRefs []string, err error) {
 
 	// Start a corroutine per job
 	wg := new(sync.WaitGroup)
-	imgRefCh := make(chan string, len(m.Conf.Jobs))
+	imgRefCh := make(chan []string, len(m.Conf.Jobs))
 	errCh := make(chan error, len(m.Conf.Jobs))
 	jobs := []*JobPipeline{}
 	for _, j := range m.Conf.Jobs {
@@ -52,7 +50,7 @@ func (m *Ci) Run(ctx context.Context) (imgRefs []string, err error) {
 	}
 
 	for _, j := range jobs {
-		go func(imgCh chan<- string, errCh chan<- error, wg *sync.WaitGroup) {
+		go func(imgCh chan<- []string, errCh chan<- error, wg *sync.WaitGroup) {
 			imgRef, err := m.runJob(ctx, j)
 			imgCh <- imgRef
 			errCh <- err
@@ -62,9 +60,11 @@ func (m *Ci) Run(ctx context.Context) (imgRefs []string, err error) {
 
 	select {
 	case v := <-imgRefCh:
-		imgRefs = append(imgRefs, v)
+		imgRefs = append(imgRefs, v...)
 	case err := <-errCh:
-		return []string{}, err
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	wg.Wait()
@@ -73,7 +73,7 @@ func (m *Ci) Run(ctx context.Context) (imgRefs []string, err error) {
 }
 
 // TODO(Zeg): Parse annotations fields as Go templates
-func (m *Ci) runJob(ctx context.Context, j *JobPipeline) (string, error) {
+func (m *Ci) runJob(ctx context.Context, j *JobPipeline) ([]string, error) {
 	// Prepare build options
 	buildOpts := dagger.ContainerBuildOpts{}
 	if j.Containerfile != "" {
@@ -102,7 +102,14 @@ func (m *Ci) runJob(ctx context.Context, j *JobPipeline) (string, error) {
 		ctr = ctr.WithAnnotation(k, v)
 	}
 
-	imgRef, err := ctr.
-		Publish(ctx, fmt.Sprintf("ttl.sh/%s:latest", uuid.NewString()))
-	return imgRef, err
+	var imgRefs []string
+	for _, t := range j.OutputTags {
+		im, err := ctr.
+			Publish(ctx, j.OutputName+":"+t)
+		if err != nil {
+			return nil, err
+		}
+		imgRefs = append(imgRefs, im)
+	}
+	return imgRefs, nil
 }

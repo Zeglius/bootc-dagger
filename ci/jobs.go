@@ -22,11 +22,11 @@ type Job struct {
 	// Example:
 	// 	Annotations: []string{"key1=value1", "key2=value2"}
 	Annotations []string `json:"annotations,omitempty"`
-	// OutputNames specifies names for the output container images.
+	// OutputName specifies name for the output container image.
 	//
 	// Example:
-	// 	OutputNames: []string{"ghcr.io/ublue-os/bluefin"}
-	OutputNames []string `json:"output-names,omitempty"`
+	// 	OutputName: "ghcr.io/ublue-os/bluefin"
+	OutputName string `json:"output-names,omitempty"`
 	// OutputTags specifies tags for the output container images.
 	//
 	// Example:

@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"strings"
+	"text/template"
 
 	"github.com/goccy/go-yaml"
 	"github.com/invopop/jsonschema"
@@ -74,6 +76,23 @@ func (*Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (*Conf, erro
 		}
 	default:
 		return nil, fmt.Errorf("Unsupported config file format: %s", cfgFileName)
+	}
+
+	// Parse tags. These can have golang templates
+	tmpl := template.New("tags").
+		Funcs(TagTmplFuncs())
+	for i, j := range result.Jobs { // For each job
+		for i2, t := range j.OutputTags { // For each tag
+			var s strings.Builder
+			if tmpl, err := tmpl.Parse(t); err != nil {
+				return nil, err
+			} else {
+				tmpl.Execute(&s, j)
+			}
+			// Replace the text with the parsed template
+			result.Jobs[i].OutputTags[i2] = s.String()
+
+		}
 	}
 
 	return result, nil

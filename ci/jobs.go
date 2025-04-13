@@ -12,6 +12,8 @@ type Job struct {
 	Containerfile string   `json:"containerfile"`
 	BuildArgs     []string `json:"build-args,omitempty"`
 	Annotations   []string `json:"annotations,omitempty"`
+	OutputNames   []string `json:"output-names,omitempty"`
+	OutputTags    []string `json:"output-tags,omitempty"`
 }
 
 type JobResult struct {

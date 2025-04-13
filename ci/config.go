@@ -41,7 +41,6 @@ func (m *Ci) ConfigJsonSchema() string {
 		KeyNamer:       strcase.KebabCase,
 		ExpandedStruct: true,
 	}
-	r.AddGoComments("dagger/ci", "./", jsonschema.WithFullComment())
 
 	json, _ := r.Reflect(m.Conf).MarshalJSON()
 	return string(json)
@@ -66,12 +65,24 @@ func (*Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (*Conf, erro
 	case ".yml":
 		fallthrough
 	case ".yaml":
-		yaml.Unmarshal([]byte(cfgContents), result)
+		if err := yaml.UnmarshalWithOptions([]byte(cfgContents), result, yaml.AllowDuplicateMapKey()); err != nil {
+			return nil, fmt.Errorf("Failed to parse YAML config: %w", err)
+		}
 	case ".json":
-		json.Unmarshal([]byte(cfgContents), result)
+		if err := json.Unmarshal([]byte(cfgContents), result); err != nil {
+			return nil, fmt.Errorf("Failed to parse JSON config: %w", err)
+		}
 	default:
 		return nil, fmt.Errorf("Unsupported config file format: %s", cfgFileName)
 	}
 
 	return result, nil
+}
+
+func (m *Ci) PrintConf() (string, error) {
+	b, err := json.Marshal(m.Conf)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }

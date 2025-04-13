@@ -26,7 +26,7 @@ type Job struct {
 	//
 	// Example:
 	// 	OutputName: "ghcr.io/ublue-os/bluefin"
-	OutputName string `json:"output-names,omitempty"`
+	OutputName string `json:"output-name,omitempty"`
 	// OutputTags specifies tags for the output container images.
 	//
 	// Example:

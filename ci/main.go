@@ -11,8 +11,26 @@ import (
 )
 
 type Ci struct {
-	Conf          *Conf
-	DockerContext *dagger.Directory // Contains the context of our CI pipeline execution
+	Conf         *Conf
+	BuildContext *dagger.Directory // Contains the context of our CI pipeline execution
+}
+
+func New(
+	ctx context.Context,
+	// +defaultPath="./bootc-ci.yaml"
+	cfgFile *dagger.File,
+	// +defaultPath="."
+	buildContext *dagger.Directory,
+) (*Ci, error) {
+	res := &Ci{BuildContext: buildContext}
+
+	conf, err := res.parseConfFile(ctx, cfgFile)
+	if err != nil {
+		return nil, err
+	}
+	res.Conf = conf
+
+	return res, nil
 }
 
 // Start the CI pipeline

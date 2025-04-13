@@ -4,6 +4,7 @@ import (
 	"context"
 	"dagger/ci/internal/dagger"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/google/uuid"
@@ -51,9 +52,18 @@ func (m *Ci) Run(ctx context.Context) (imgRefs []string, err error) {
 	return imgRefs, nil
 }
 
-func (m *Ci) runJob(ctx context.Context, _ *JobPipeline) JobResult {
+// TODO(Zeg): Parse annotations fields as Go templates
+func (m *Ci) runJob(ctx context.Context, j *JobPipeline) JobResult {
 	// Build image
-	imgRef, err := m.dummyContainer().
+	ctr := m.dummyContainer()
+
+	// Add annotations specified
+	for _, a := range j.Annotations {
+		k, v, _ := strings.Cut(a, "=")
+		ctr = ctr.WithAnnotation(k, v)
+	}
+
+	imgRef, err := ctr.
 		Publish(ctx, fmt.Sprintf("ttl.sh/%s:latest", uuid.NewString()))
 	return JobResult{ImgRef: imgRef, Err: err}
 }

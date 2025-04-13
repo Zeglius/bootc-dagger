@@ -18,25 +18,6 @@ type Conf struct {
 	Jobs []Job `json:"jobs"` // Wow
 }
 
-// Load configuration file
-func (m *Ci) WithConfig(
-	ctx context.Context,
-	// +defaultPath="."
-	dir *dagger.Directory,
-	// +defaultPath="bootc-ci.yaml"
-	cfgFile *dagger.File,
-) (*Ci, error) {
-
-	m.BuildContext = dir
-	c, err := m.parseConfFile(ctx, cfgFile)
-	if err != nil {
-		return nil, err
-	}
-	m.Conf = c
-
-	return m, nil
-}
-
 // Returns the json schema that the config file follows.
 func (m *Ci) ConfigJsonSchema() string {
 	r := &jsonschema.Reflector{

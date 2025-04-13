@@ -1,0 +1,8 @@
+{
+  "$schema": "https://docs.dagger.io/reference/dagger.schema.json",
+  "name": "ci",
+  "engineVersion": "v0.18.2",
+  "sdk": {
+    "source": "go"
+  }
+}

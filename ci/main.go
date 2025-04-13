@@ -1,0 +1,64 @@
+package main
+
+import (
+	"context"
+	"dagger/ci/internal/dagger"
+	"fmt"
+	"sync"
+
+	"github.com/google/uuid"
+)
+
+type Ci struct {
+	Conf          *Conf
+	DockerContext *dagger.Directory // Contains the context of our CI pipeline execution
+}
+
+// Start the CI pipeline
+func (m *Ci) Run(ctx context.Context) (imgRefs []string, err error) {
+	cfg := m.Conf
+	if len(cfg.Jobs) == 0 {
+		return []string{}, fmt.Errorf("There are no jobs in the config")
+	}
+
+	// Start a corroutine per job
+	wg := new(sync.WaitGroup)
+	jobsResChan := make(chan JobResult, len(cfg.Jobs))
+	jobs := []*JobPipeline{}
+	for _, j := range cfg.Jobs {
+		jobs = append(jobs, NewJobPipeline(&j, dag.Container()))
+		wg.Add(1)
+	}
+
+	for _, j := range jobs {
+		go func(c chan<- JobResult, wg *sync.WaitGroup) {
+			c <- m.runJob(ctx, j)
+			wg.Done()
+		}(jobsResChan, wg)
+	}
+
+	select {
+	case v := <-jobsResChan:
+		if err := v.Err; err != nil {
+			return []string{}, err
+		} else {
+			imgRefs = append(imgRefs, v.ImgRef)
+		}
+	}
+
+	wg.Wait()
+
+	return imgRefs, nil
+}
+
+func (m *Ci) runJob(ctx context.Context, _ *JobPipeline) JobResult {
+	// Build image
+	imgRef, err := m.dummyContainer().
+		Publish(ctx, fmt.Sprintf("ttl.sh/%s:latest", uuid.NewString()))
+	return JobResult{ImgRef: imgRef, Err: err}
+}
+
+// dummyContainer returns a dummy container that acts as placeholder.
+func (*Ci) dummyContainer() *dagger.Container {
+	return dag.Container().From("alpine:latest")
+}

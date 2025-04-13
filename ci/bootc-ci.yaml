@@ -1,0 +1,11 @@
+jobs:
+  - &dummy-job
+    containerfile: ./Containerfile
+    build-args:
+      - aaa=ubuntu
+  - <<: *dummy-job
+    build-args:
+      - bbb=bbb
+  - <<: *dummy-job
+    build-args:
+      - BASE_IMAGE=fedora

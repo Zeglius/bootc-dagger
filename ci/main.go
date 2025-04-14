@@ -7,7 +7,8 @@ import (
 	"dagger/ci/internal/dagger"
 	"fmt"
 	"strings"
-	"sync"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type Ci struct {
@@ -39,35 +40,27 @@ func (m *Ci) Run(ctx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("There are no jobs in the config: %v", *m.Conf)
 	}
 
-	var wg sync.WaitGroup
-	results := make(chan struct {
-		refs []string
-		err  error
-	}, len(m.Conf.Jobs))
-
+	eg, gctx := errgroup.WithContext(ctx)
+	imgCh := make(chan []string)
 	for _, j := range m.Conf.Jobs {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			refs, err := m.runJob(ctx, j)
-			results <- struct {
-				refs []string
-				err  error
-			}{refs, err}
-		}()
+		eg.Go(func() error {
+			refs, err := m.runJob(gctx, j)
+			if err != nil {
+				return err
+			}
+			imgCh <- refs
+			return nil
+		})
 	}
 
 	go func() {
-		wg.Wait()
-		close(results)
+		defer close(imgCh)
+		eg.Wait()
 	}()
 
 	imgRefs := []string{}
-	for result := range results {
-		if result.err != nil {
-			return nil, result.err
-		}
-		imgRefs = append(imgRefs, result.refs...)
+	for img := range imgCh {
+		imgRefs = append(imgRefs, img...)
 	}
 
 	return imgRefs, nil

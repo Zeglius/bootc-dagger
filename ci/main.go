@@ -47,10 +47,9 @@ func (m *Ci) Run(ctx context.Context) (imgRefs []string, err error) {
 
 	for _, j := range m.Conf.Jobs {
 		wg.Add(1)
-		job := &JobPipeline{&j, dag.Container()}
 		go func() {
 			defer wg.Done()
-			refs, err := m.runJob(ctx, job)
+			refs, err := m.runJob(ctx, j)
 			results <- struct {
 				refs []string
 				err  error
@@ -73,14 +72,28 @@ func (m *Ci) Run(ctx context.Context) (imgRefs []string, err error) {
 	return imgRefs, nil
 }
 
-func (m *Ci) runJob(ctx context.Context, j *JobPipeline) ([]string, error) {
+// Concurrent worker that builds, annotates and publish an image
+// per job.
+func (m *Ci) runJob(ctx context.Context, j Job) ([]string, error) {
 	// Prepare build options
+	ctr := m.buildContainer(j)
+
+	// Add annotations and labels
+	ctr = labelAndAnnotate(j, ctr)
+
+	// Publish the image, per each tag
+	return publishImages(ctx, j, ctr)
+}
+
+// Build a container image using the provided job configuration like build-args.
+func (m *Ci) buildContainer(j Job) *dagger.Container {
 	buildOpts := dagger.ContainerBuildOpts{}
 	if j.Containerfile != "" {
 		buildOpts.Dockerfile = j.Containerfile
 	} else {
 		buildOpts.Dockerfile = "Dockerfile"
 	}
+
 	// Set build arguments
 	if len(j.BuildArgs) != 0 {
 		for _, ba := range j.BuildArgs {
@@ -95,7 +108,29 @@ func (m *Ci) runJob(ctx context.Context, j *JobPipeline) ([]string, error) {
 
 	// Build image
 	ctr := dag.Container().Build(m.BuildContext, buildOpts)
+	return ctr
+}
 
+// Publish container images with the provided tags to a remote image
+// registry. The provided container is published with each output tag using the output
+// image name and returns the references to each published image.
+func publishImages(ctx context.Context, j Job, ctr *dagger.Container) ([]string, error) {
+	var imgRefs []string
+	for _, t := range j.OutputTags {
+		im, err := ctr.
+			Publish(ctx, j.OutputName+":"+t)
+		if err != nil {
+			return nil, err
+		}
+		imgRefs = append(imgRefs, im)
+	}
+
+	return imgRefs, nil
+}
+
+// labelAndAnnotate labels and annotations to container images.
+// Annotations and labels take the form of "name=value" strings.
+func labelAndAnnotate(j Job, ctr *dagger.Container) *dagger.Container {
 	// Add annotations
 	for _, a := range j.Annotations {
 		k, v, _ := strings.Cut(a, "=")
@@ -107,15 +142,5 @@ func (m *Ci) runJob(ctx context.Context, j *JobPipeline) ([]string, error) {
 		k, v, _ := strings.Cut(l, "=")
 		ctr = ctr.WithLabel(k, v)
 	}
-
-	var imgRefs []string
-	for _, t := range j.OutputTags {
-		im, err := ctr.
-			Publish(ctx, j.OutputName+":"+t)
-		if err != nil {
-			return nil, err
-		}
-		imgRefs = append(imgRefs, im)
-	}
-	return imgRefs, nil
+	return ctr
 }

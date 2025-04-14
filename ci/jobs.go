@@ -1,9 +1,5 @@
 package main
 
-import (
-	"dagger/ci/internal/dagger"
-)
-
 type JobID = string
 
 type Job struct {
@@ -37,10 +33,4 @@ type Job struct {
 	// Example:
 	// 	OutputTags: []string{"latest", "v1.0"}
 	OutputTags []string `json:"output-tags,omitempty"`
-}
-
-type JobPipeline struct {
-	// Contains the context associated with the container build.
-	*Job
-	Ctr *dagger.Container
 }

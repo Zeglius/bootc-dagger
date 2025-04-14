@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"dagger/ci/internal/dagger"
+	"dagger/ci/tmpls"
 	"encoding/json"
 	"fmt"
 	"path"
@@ -61,7 +62,7 @@ func (*Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (*Conf, erro
 
 	// Parse templates. These can have golang templates
 	tmpl := template.New("templates").
-		Funcs(TmplFuncs())
+		Funcs(tmpls.TmplFuncs())
 	for i, j := range result.Jobs { // For each job
 
 		// Process output tags

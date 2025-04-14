@@ -34,7 +34,7 @@ func New(
 }
 
 // Start the CI pipeline
-func (m *Ci) Run(ctx context.Context) (imgRefs []string, err error) {
+func (m *Ci) Run(ctx context.Context) ([]string, error) {
 	if len(m.Conf.Jobs) == 0 {
 		return nil, fmt.Errorf("There are no jobs in the config: %v", *m.Conf)
 	}
@@ -62,6 +62,7 @@ func (m *Ci) Run(ctx context.Context) (imgRefs []string, err error) {
 		close(results)
 	}()
 
+	imgRefs := []string{}
 	for result := range results {
 		if result.err != nil {
 			return nil, result.err

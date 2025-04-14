@@ -61,7 +61,7 @@ func (*Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (*Conf, erro
 
 	// Parse templates. These can have golang templates
 	tmpl := template.New("templates").
-		Funcs(TagTmplFuncs())
+		Funcs(TmplFuncs())
 	for i, j := range result.Jobs { // For each job
 
 		// Process output tags

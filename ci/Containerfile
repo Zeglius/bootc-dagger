@@ -1,3 +1,7 @@
-ARG BASE_IMAGE=${BASE_IMAGE:-alpine}
+ARG BASE_IMAGE=${BASE_IMAGE:-fedora}
+ARG PKGS=${PKGS:-bash}
+
 FROM ${BASE_IMAGE}
-RUN echo "hello world" > /msg.txt
+ARG PKGS
+RUN --mount=type=cache,target=/var/cache \
+    dnf install -y ${PKGS}

@@ -73,7 +73,6 @@ func (m *Ci) Run(ctx context.Context) (imgRefs []string, err error) {
 	return imgRefs, nil
 }
 
-// TODO(Zeg): Parse annotations fields as Go templates
 func (m *Ci) runJob(ctx context.Context, j *JobPipeline) ([]string, error) {
 	// Prepare build options
 	buildOpts := dagger.ContainerBuildOpts{}

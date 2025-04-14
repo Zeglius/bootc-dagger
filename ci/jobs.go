@@ -1,7 +1,5 @@
 package main
 
-type JobID = string
-
 type Job struct {
 	// Containerfile is the path to the Dockerfile used for building the container.
 	//

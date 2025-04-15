@@ -1,8 +1,0 @@
-jobs:
-  - &dummy-job
-    containerfile: ./Containerfile
-    build-args:
-      - aaa=aaa
-  - <<: *dummy-job
-    build-args:
-      - bbb=bbb

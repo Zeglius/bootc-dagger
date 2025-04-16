@@ -36,7 +36,10 @@ func New(
 }
 
 // Start the CI pipeline
-func (m *Ci) Run() ([]string, error) {
+func (m *Ci) Run(
+	// +optional
+	dryRun bool, // Skip publishing
+) ([]string, error) {
 	if len(m.Conf.Jobs) == 0 {
 		return nil, fmt.Errorf("There are no jobs in the config: %v", *m.Conf)
 	}
@@ -57,9 +60,13 @@ func (m *Ci) Run() ([]string, error) {
 			if err != nil {
 				return err
 			}
-			refs, err := publishImages(gctx, j, ctr)
-			if err != nil {
-				return err
+
+			refs := make([]string, len(m.Conf.Jobs))
+			if !dryRun {
+				refs, err = m.PublishImages(gctx, j, ctr)
+				if err != nil {
+					return err
+				}
 			}
 
 			ctrs.Store(i, refs)
@@ -109,7 +116,7 @@ func (m *Ci) buildContainer(j Job) *dagger.Container {
 // Publish container images with the provided tags to a remote image
 // registry. The provided container is published with each output tag using the output
 // image name and returns the references to each published image.
-func publishImages(ctx context.Context, j Job, ctr *dagger.Container) ([]string, error) {
+func (m *Ci) PublishImages(ctx context.Context, j Job, ctr *dagger.Container) ([]string, error) {
 	var imgRefs []string
 	for _, t := range j.OutputTags {
 		im, err := ctr.

@@ -80,19 +80,6 @@ func (m *Ci) Run() ([]string, error) {
 	return imgRefs, nil
 }
 
-// Concurrent worker that builds, annotates and publish an image
-// per job.
-func (m *Ci) runJob(ctx context.Context, j Job) ([]string, error) {
-	// Prepare build options
-	ctr := m.buildContainer(j)
-
-	// Add annotations and labels
-	ctr = labelAndAnnotate(j, ctr)
-
-	// Publish the image, per each tag
-	return publishImages(ctx, j, ctr)
-}
-
 // Build a container image using the provided job configuration like build-args.
 func (m *Ci) buildContainer(j Job) *dagger.Container {
 	buildOpts := dagger.ContainerBuildOpts{}

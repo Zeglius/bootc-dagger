@@ -1,7 +1,12 @@
 ARG BASE_IMAGE=${BASE_IMAGE:-fedora}
 ARG PKGS=${PKGS:-bash}
+ARG TIME=${TIME:-0}
 
 FROM ${BASE_IMAGE}
 ARG PKGS
-RUN --mount=type=cache,target=/var/cache \
+ARG TIME
+RUN : ${TIME}
+RUN --mount=type=cache,target=/var/cache/libdnf5,sharing=locked \
+    dnf -y makecache
+RUN --mount=type=cache,target=/var/cache/libdnf5,sharing=shared \
     dnf install -y ${PKGS}

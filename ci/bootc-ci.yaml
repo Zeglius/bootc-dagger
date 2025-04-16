@@ -5,4 +5,9 @@ jobs:
     output-tags: ["1h"]
     build-args:
       - BASE_IMAGE=fedora:latest
-      - PKGS=podman nnn
+      - PKGS=podman nnn bash systemd
+      - TIME={{ nowTag }}-2
+  - <<: *dummy-job
+    build-args:
+      - PKGS=podman bubblewrap bash systemd nnn
+      - TIME={{ nowTag }}

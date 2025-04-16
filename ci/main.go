@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"dagger/ci/internal/dagger"
+	"dagger/ci/types/syncmap"
 	"fmt"
 	"strings"
 
@@ -35,34 +36,47 @@ func New(
 }
 
 // Start the CI pipeline
-func (m *Ci) Run(ctx context.Context) ([]string, error) {
+func (m *Ci) Run() ([]string, error) {
 	if len(m.Conf.Jobs) == 0 {
 		return nil, fmt.Errorf("There are no jobs in the config: %v", *m.Conf)
 	}
 
-	eg, gctx := errgroup.WithContext(ctx)
-	imgCh := make(chan []string)
-	for _, j := range m.Conf.Jobs {
+	ctrs := syncmap.New[int, []string]()
+	eg, gctx := errgroup.WithContext(context.Background())
+	for i, j := range m.Conf.Jobs {
 		eg.Go(func() error {
-			refs, err := m.runJob(gctx, j)
+			var (
+				ctr *dagger.Container = nil
+				err error             = nil
+			)
+			ctr = m.buildContainer(j)
+			ctr, err = labelAndAnnotate(j, ctr).
+				// Necessary in order to trigger the container BuildContext
+				// inside the coroutine.
+				Sync(gctx)
 			if err != nil {
 				return err
 			}
-			imgCh <- refs
+			refs, err := publishImages(gctx, j, ctr)
+			if err != nil {
+				return err
+			}
+
+			ctrs.Store(i, refs)
 			return nil
 		})
 	}
 
-	go func() {
-		defer close(imgCh)
-		eg.Wait()
-	}()
-
-	imgRefs := []string{}
-	for img := range imgCh {
-		imgRefs = append(imgRefs, img...)
+	err := eg.Wait()
+	if err != nil {
+		return nil, err
 	}
 
+	imgRefs := []string{}
+	ctrs.Range(func(key int, value []string) bool {
+		imgRefs = append(imgRefs, value...)
+		return true
+	})
 	return imgRefs, nil
 }
 

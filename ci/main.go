@@ -6,7 +6,6 @@ import (
 	"dagger/ci/internal/dagger"
 	"dagger/ci/types/syncmap"
 	"fmt"
-	"strings"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -99,10 +98,9 @@ func (m *Ci) buildContainer(j Job) *dagger.Container {
 	if len(j.BuildArgs) != 0 {
 		for _, ba := range j.BuildArgs {
 			// build-args is a name=value string, so we need to split
-			k, v, _ := strings.Cut(ba, "=")
 			buildOpts.BuildArgs = append(
 				buildOpts.BuildArgs,
-				dagger.BuildArg{Name: k, Value: v},
+				dagger.BuildArg{Name: ba.Key, Value: ba.Value},
 			)
 		}
 	}
@@ -134,14 +132,12 @@ func (m *Ci) PublishImages(ctx context.Context, j Job, ctr *dagger.Container) ([
 func labelAndAnnotate(j Job, ctr *dagger.Container) *dagger.Container {
 	// Add annotations
 	for _, a := range j.Annotations {
-		k, v, _ := strings.Cut(a, "=")
-		ctr = ctr.WithAnnotation(k, v)
+		ctr = ctr.WithAnnotation(a.Key, a.Value)
 	}
 
 	// Add labels
 	for _, l := range j.Labels {
-		k, v, _ := strings.Cut(l, "=")
-		ctr = ctr.WithLabel(k, v)
+		ctr = ctr.WithLabel(l.Key, l.Value)
 	}
 	return ctr
 }

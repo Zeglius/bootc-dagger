@@ -6,21 +6,22 @@ type Job struct {
 	// Example:
 	// 	Containerfile: "Dockerfile"
 	Containerfile string `json:"containerfile"`
-	// BuildArgs are the build arguments passed to the container build process.
+	// BuildArgs represents a list of key-value pairs for container build arguments.
+	// Each build argument consists of a Key and Value field.
 	//
 	// Example:
-	// 	BuildArgs: []string{"ARG1=value1", "ARG2=value2"}
-	BuildArgs []string `json:"build-args,omitempty"`
+	// 	BuildArgs: []Pair{{Key: "ARG1", Value: "value1"}}
+	BuildArgs []Pair `json:"build-args,omitempty"`
 	// Annotations are metadata labels that can be added to the container.
 	//
 	// Example:
-	// 	Annotations: []string{"key1=value1", "key2=value2"}
-	Annotations []string `json:"annotations,omitempty"`
+	// 	Annotations: []Pair{{Key: "KEY1", Value: "VALUE1"}}
+	Annotations []Pair `json:"annotations,omitempty"`
 	// Labels are metadata labels that can be added to the container.
 	//
 	// Example:
-	// 	Labels: []string{"key1=value1", "key2=value2"}
-	Labels []string `json:"labels,omitempty"`
+	// 	Labels: []Pair{{Key: "KEY1", Value: "VALUE1"}}
+	Labels []Pair `json:"labels,omitempty"`
 	// OutputName specifies name for the output container image.
 	//
 	// Example:
@@ -31,4 +32,11 @@ type Job struct {
 	// Example:
 	// 	OutputTags: []string{"latest", "v1.0"}
 	OutputTags []string `json:"output-tags,omitempty"`
+}
+
+type Pair struct {
+	// Key is the name/identification of a build argument, annotation, or label.
+	Key string
+	// Value is the corresponding value associated with the Key.
+	Value string
 }

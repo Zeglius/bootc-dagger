@@ -79,34 +79,34 @@ func (*Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (*Conf, erro
 		// Process build args
 		for k, ba := range j.BuildArgs {
 			var s strings.Builder
-			if tmpl, err := tmpl.Parse(ba); err != nil {
+			if tmpl, err := tmpl.Parse(ba.Value); err != nil {
 				return nil, err
 			} else {
 				tmpl.Execute(&s, j)
 			}
-			result.Jobs[i].BuildArgs[k] = s.String()
+			result.Jobs[i].BuildArgs[k].Value = s.String()
 		}
 
 		// Process annotations
 		for k, annot := range j.Annotations {
 			var s strings.Builder
-			if tmpl, err := tmpl.Parse(annot); err != nil {
+			if tmpl, err := tmpl.Parse(annot.Value); err != nil {
 				return nil, err
 			} else {
 				tmpl.Execute(&s, j)
 			}
-			result.Jobs[i].Annotations[k] = s.String()
+			result.Jobs[i].Annotations[k].Value = s.String()
 		}
 
 		// Process labels
 		for k, label := range j.Labels {
 			var s strings.Builder
-			if tmpl, err := tmpl.Parse(label); err != nil {
+			if tmpl, err := tmpl.Parse(label.Value); err != nil {
 				return nil, err
 			} else {
 				tmpl.Execute(&s, j)
 			}
-			result.Jobs[i].Labels[k] = s.String()
+			result.Jobs[i].Labels[k].Value = s.String()
 		}
 	}
 

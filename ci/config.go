@@ -30,7 +30,47 @@ func (m *Ci) ConfigJsonSchema() string {
 	return string(json)
 }
 
-func (*Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (*Conf, error) {
+func (Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (*Conf, error) {
+	// We cant use map[string]any (or any map) in Job struct, as dagger codegen will
+	// refuse to work with these if used in public facing types.
+	//
+	// Instead, we will use an anonymous struct that uses map, and a anonymous function
+	// that replace these with [Pair].
+	type JobParseable struct {
+		Containerfile string            `json:"containerfile"`
+		BuildArgs     map[string]string `json:"build-args,omitempty"`
+		Annotations   map[string]string `json:"annotations,omitempty"`
+		Labels        map[string]string `json:"labels,omitempty"`
+		OutputName    string            `json:"output-name,omitempty"`
+		OutputTags    []string          `json:"output-tags,omitempty"`
+	}
+
+	type ConfParseable struct {
+		Jobs []JobParseable `json:"jobs"`
+	}
+
+	toJob := func(j JobParseable) Job {
+		res := Job{
+			Containerfile: j.Containerfile,
+			BuildArgs:     make([]Pair, 0, len(j.BuildArgs)),
+			Annotations:   make([]Pair, 0, len(j.Annotations)),
+			Labels:        make([]Pair, 0, len(j.Labels)),
+			OutputName:    j.OutputName,
+			OutputTags:    j.OutputTags,
+		}
+		for k, v := range j.BuildArgs {
+			res.BuildArgs = append(res.BuildArgs, Pair{Key: k, Value: v})
+		}
+		for k, v := range j.Annotations {
+			res.Annotations = append(res.Annotations, Pair{Key: k, Value: v})
+		}
+		for k, v := range j.Labels {
+			res.Labels = append(res.Labels, Pair{Key: k, Value: v})
+		}
+
+		return res
+	}
+
 	if _, err := cfgFile.Sync(ctx); err != nil {
 		return nil, fmt.Errorf("Config file was not accessible: %w", err)
 	}
@@ -44,20 +84,25 @@ func (*Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (*Conf, erro
 		return nil, fmt.Errorf("Config file name could not be retrieved: %w", err)
 	}
 
-	result := &Conf{}
+	c := &ConfParseable{}
 	switch path.Ext(cfgFileName) {
 	case ".yml":
 		fallthrough
 	case ".yaml":
-		if err := yaml.UnmarshalWithOptions([]byte(cfgContents), result, yaml.AllowDuplicateMapKey()); err != nil {
+		if err := yaml.UnmarshalWithOptions([]byte(cfgContents), c, yaml.AllowDuplicateMapKey()); err != nil {
 			return nil, fmt.Errorf("Failed to parse YAML config: %w", err)
 		}
 	case ".json":
-		if err := json.Unmarshal([]byte(cfgContents), result); err != nil {
+		if err := json.Unmarshal([]byte(cfgContents), c); err != nil {
 			return nil, fmt.Errorf("Failed to parse JSON config: %w", err)
 		}
 	default:
 		return nil, fmt.Errorf("Unsupported config file format: %s", cfgFileName)
+	}
+
+	result := &Conf{}
+	for _, jp := range c.Jobs {
+		result.Jobs = append(result.Jobs, toJob(jp))
 	}
 
 	// Parse templates. These can have golang templates

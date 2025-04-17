@@ -3,11 +3,16 @@ jobs:
     containerfile: ./Containerfile
     output-name: "ttl.sh/dummy"
     output-tags: ["1h"]
-    build-args:
-      - &base-image { key: BASE_IMAGE, value: "fedora:latest" }
-      - &pkgs { key: PKGS, value: "podman bubblewrap bash systemd nnn" }
-      - { key: TIME, value: "{{ nowTag }}-2" }
+    build-args: &dummy-args
+      BASE_IMAGE: "fedora:latest"
+      PKGS: "podman bubblewrap bash systemd nnn"
+      TIME: "{{ nowTag }}"
+    annotations:
+      HELLO: world
+    labels:
+      MY: label
   - <<: *dummy-job
     build-args:
-      - *base-image
-      - { key: TIME, value: "{{ nowTag }}-2" }
+      <<: *dummy-args
+      PKGS: "podman bubblewrap bash systemd nnn"
+      TIME: "{{ nowTag }}"

@@ -10,58 +10,70 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type Ci struct {
+type Ci struct{}
+
+type Builder struct {
 	Conf         *Conf
-	BuildContext *dagger.Directory // Contains the context of our CI pipeline execution
+	BuildContext *dagger.Directory
 }
 
-func New(
+// Start the CI pipeline
+func (m *Ci) NewBuilder(
 	ctx context.Context,
 	// +defaultPath="./bootc-ci.yaml"
 	cfgFile *dagger.File,
 	// +defaultPath="."
 	buildContext *dagger.Directory,
-) (*Ci, error) {
-	res := &Ci{BuildContext: buildContext}
-
-	conf, err := res.parseConfFile(ctx, cfgFile)
-	if err != nil {
-		return nil, err
-	}
-	res.Conf = conf
-
-	return res, nil
-}
-
-// Start the CI pipeline
-func (m *Ci) Run(
 	// +optional
 	dryRun bool, // Skip publishing
-) ([]string, error) {
-	if len(m.Conf.Jobs) == 0 {
-		return nil, fmt.Errorf("There are no jobs in the config: %v", *m.Conf)
+) (*Builder, error) {
+
+	builder := &Builder{
+		Conf:         nil,
+		BuildContext: buildContext,
 	}
 
+	if c, err := m.parseConfFile(ctx, cfgFile); err != nil {
+		return nil, err
+	} else {
+		if c == nil {
+			return nil, fmt.Errorf("Configuration file didnt load correctly")
+		}
+		if len(c.Jobs) == 0 {
+			return nil, fmt.Errorf("There are no jobs in the config: %v", *c)
+		}
+
+		builder.Conf = c
+	}
+
+	return builder, nil
+}
+
+func (b *Builder) Build(
+	ctx context.Context,
+	// +optional
+	dryRun bool,
+) ([]string, error) {
 	ctrs := syncmap.New[int, []string]()
-	eg, gctx := errgroup.WithContext(context.Background())
-	for i, j := range m.Conf.Jobs {
+	eg, gctx := errgroup.WithContext(ctx)
+	for i, j := range b.Conf.Jobs {
 		eg.Go(func() error {
 			var (
 				ctr *dagger.Container = nil
 				err error             = nil
 			)
-			ctr = m.buildContainer(j)
-			ctr, err = labelAndAnnotate(j, ctr).
-				// Necessary in order to trigger the container BuildContext
-				// inside the coroutine.
-				Sync(gctx)
+			ctr = buildContainer(j, b.BuildContext)
+			ctr = labelAndAnnotate(j, ctr)
+			// Necessary in order to trigger the container BuildContext
+			// inside the coroutine.
+			ctr, err = ctr.Sync(gctx)
 			if err != nil {
 				return err
 			}
 
-			refs := make([]string, len(m.Conf.Jobs))
+			refs := make([]string, len(b.Conf.Jobs))
 			if !dryRun {
-				refs, err = m.PublishImages(gctx, j, ctr)
+				refs, err = publishImages(gctx, j, ctr)
 				if err != nil {
 					return err
 				}
@@ -72,8 +84,7 @@ func (m *Ci) Run(
 		})
 	}
 
-	err := eg.Wait()
-	if err != nil {
+	if err := eg.Wait(); err != nil {
 		return nil, err
 	}
 
@@ -86,7 +97,7 @@ func (m *Ci) Run(
 }
 
 // Build a container image using the provided job configuration like build-args.
-func (m *Ci) buildContainer(j Job) *dagger.Container {
+func buildContainer(j Job, d *dagger.Directory) *dagger.Container {
 	buildOpts := dagger.ContainerBuildOpts{}
 	if j.Containerfile != "" {
 		buildOpts.Dockerfile = j.Containerfile
@@ -106,14 +117,14 @@ func (m *Ci) buildContainer(j Job) *dagger.Container {
 	}
 
 	// Build image
-	ctr := dag.Container().Build(m.BuildContext, buildOpts)
+	ctr := dag.Container().Build(d, buildOpts)
 	return ctr
 }
 
 // Publish container images with the provided tags to a remote image
 // registry. The provided container is published with each output tag using the output
 // image name and returns the references to each published image.
-func (m *Ci) PublishImages(ctx context.Context, j Job, ctr *dagger.Container) ([]string, error) {
+func publishImages(ctx context.Context, j Job, ctr *dagger.Container) ([]string, error) {
 	var imgRefs []string
 	for _, t := range j.OutputTags {
 		im, err := ctr.

@@ -5,7 +5,13 @@ jobs:
     output-tags: ["1h"]
     build-args: &dummy-args
       BASE_IMAGE: "fedora:latest"
-      PKGS: "podman bubblewrap bash systemd nnn"
+      PKGS: >-
+        {{ block "packages" . -}}
+        podman
+        bubblewrap
+        bash
+        nnn
+        {{- end }}
       TIME: "{{ nowTag }}"
     annotations:
       HELLO: world
@@ -14,5 +20,7 @@ jobs:
   - <<: *dummy-job
     build-args:
       <<: *dummy-args
-      PKGS: "podman bubblewrap bash systemd nnn"
+      PKGS: >-
+        {{ template "packages" }}
+        firefox
       TIME: "{{ nowTag }}"

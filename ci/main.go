@@ -5,6 +5,7 @@ import (
 	"context"
 	"dagger/ci/internal/dagger"
 	"dagger/ci/types/syncmap"
+	"encoding/json"
 	"fmt"
 
 	"golang.org/x/sync/errgroup"
@@ -13,7 +14,7 @@ import (
 type Ci struct{}
 
 type Builder struct {
-	Conf         *Conf
+	Conf         ConfString
 	BuildContext *dagger.Directory
 }
 
@@ -29,18 +30,25 @@ func (m *Ci) NewBuilder(
 ) (*Builder, error) {
 
 	builder := &Builder{
-		Conf:         nil,
+		Conf:         "",
 		BuildContext: buildContext,
 	}
 
 	if c, err := m.parseConfFile(ctx, cfgFile); err != nil {
 		return nil, err
 	} else {
-		if c == nil {
+		if c == "" {
 			return nil, fmt.Errorf("Configuration file didnt load correctly")
 		}
-		if len(c.Jobs) == 0 {
-			return nil, fmt.Errorf("There are no jobs in the config: %v", *c)
+
+		{
+			var s Conf
+			if err := json.Unmarshal([]byte(c), &s); err != nil {
+				return nil, err
+			}
+			if len(s.Jobs) == 0 {
+				return nil, fmt.Errorf("There are no jobs in the config: %s", c)
+			}
 		}
 
 		builder.Conf = c
@@ -56,7 +64,12 @@ func (b *Builder) Build(
 ) ([]string, error) {
 	ctrs := syncmap.New[int, []string]()
 	eg, gctx := errgroup.WithContext(ctx)
-	for i, j := range b.Conf.Jobs {
+	var conf Conf
+	if err := json.Unmarshal([]byte(b.Conf), &conf); err != nil {
+		return nil, err
+	}
+
+	for i, j := range conf.Jobs {
 		eg.Go(func() error {
 			var (
 				ctr *dagger.Container = nil
@@ -71,7 +84,7 @@ func (b *Builder) Build(
 				return err
 			}
 
-			refs := make([]string, len(b.Conf.Jobs))
+			refs := make([]string, len(conf.Jobs))
 			if !dryRun {
 				refs, err = publishImages(gctx, j, ctr)
 				if err != nil {
@@ -107,11 +120,11 @@ func buildContainer(j Job, d *dagger.Directory) *dagger.Container {
 
 	// Set build arguments
 	if len(j.BuildArgs) != 0 {
-		for _, ba := range j.BuildArgs {
+		for k, v := range j.BuildArgs {
 			// build-args is a name=value string, so we need to split
 			buildOpts.BuildArgs = append(
 				buildOpts.BuildArgs,
-				dagger.BuildArg{Name: ba.Key, Value: ba.Value},
+				dagger.BuildArg{Name: k, Value: v},
 			)
 		}
 	}
@@ -142,13 +155,13 @@ func publishImages(ctx context.Context, j Job, ctr *dagger.Container) ([]string,
 // Annotations and labels take the form of "name=value" strings.
 func labelAndAnnotate(j Job, ctr *dagger.Container) *dagger.Container {
 	// Add annotations
-	for _, a := range j.Annotations {
-		ctr = ctr.WithAnnotation(a.Key, a.Value)
+	for k, v := range j.Annotations {
+		ctr = ctr.WithAnnotation(k, v)
 	}
 
 	// Add labels
-	for _, l := range j.Labels {
-		ctr = ctr.WithLabel(l.Key, l.Value)
+	for k, v := range j.Labels {
+		ctr = ctr.WithLabel(k, v)
 	}
 	return ctr
 }

@@ -196,7 +196,7 @@ func (Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (config.ConfS
 	// Interpret templates.
 	tmpl, err := template.
 		New(cfgFileName).
-		Funcs(tmpls.TmplFuncs()).
+		Funcs(tmpls.TmplFuncs).
 		Parse(cfgContents)
 	if err != nil {
 		return "", err

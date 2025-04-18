@@ -33,7 +33,7 @@ var TmplFuncs = template.FuncMap{
 		return string(b[:])
 	},
 
-	"replaceRe": func(pttrn, old, new string) string {
+	"replaceRe": func(pttrn, new, old string) string {
 		return regexp.MustCompile(pttrn).ReplaceAllString(old, new)
 	},
 
@@ -42,10 +42,48 @@ var TmplFuncs = template.FuncMap{
 		return s
 	},
 
-	"contains":   strings.Contains,
-	"endsWith":   strings.HasSuffix,
-	"replace":    strings.ReplaceAll,
-	"startsWith": strings.HasPrefix,
+	"startsWith": func(prefix, s string) bool {
+		return strings.HasPrefix(s, prefix)
+	},
+
+	"endsWith": func(suffix, s string) bool {
+		return strings.HasSuffix(s, suffix)
+	},
+
+	"contains": func(substr, s string) bool {
+		return strings.Contains(s, substr)
+	},
+
+	"replace": func(old, new, s string) string {
+		return strings.ReplaceAll(s, old, new)
+	},
+
+	"join": func(sep string, elems []string) string {
+		return strings.Join(elems, sep)
+	},
+
+	"newSlice": func(elems ...any) []any {
+		return elems
+	},
+
+	"map": func(elems ...any) map[any]any {
+		// If the num of elements is not even, means we have a
+		// mismatched key-value pair.
+		if len(elems)%2 != 0 {
+			panic("map function requires an even number of arguments")
+		}
+
+		m := make(map[any]any)
+
+		for i := range elems {
+			if i%2 != 0 {
+				continue
+			}
+			m[elems[i]] = elems[i+1]
+		}
+
+		return m
+	},
 
 	// "parseDockerRef": func(ref string) struct {
 	// 	domain string

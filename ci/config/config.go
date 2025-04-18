@@ -19,6 +19,14 @@ type Conf struct {
 	Jobs []Job `json:"jobs"` // Wow
 }
 
+func (c Conf) ToConfString() (ConfString, error) {
+	b, err := json.Marshal(c)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
 // // Returns the json schema that the config file follows.
 // func (m *Ci) ConfigJsonSchema() string {
 // 	r := &jsonschema.Reflector{

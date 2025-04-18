@@ -39,24 +39,26 @@ func (m *Ci) NewBuilder(
 		BuildContext: buildContext,
 	}
 
-	if c, err := m.parseConfFile(ctx, cfgFile); err != nil {
+	if cs, err := m.parseConfFile(ctx, cfgFile); err != nil {
 		return nil, err
 	} else {
-		if c == "" {
+		if cs == "" {
 			return nil, fmt.Errorf("Configuration file didnt load correctly")
 		}
 
-		{
-			var s config.Conf
-			if err := json.Unmarshal([]byte(c), &s); err != nil {
-				return nil, err
-			}
-			if len(s.Jobs) == 0 {
-				return nil, fmt.Errorf("There are no jobs in the config: %s", c)
-			}
+		c, err := config.ReadConfString(cs)
+		if err != nil {
+			return nil, err
 		}
 
-		builder.Conf = c
+		if len(c.Jobs) == 0 {
+			return nil, fmt.Errorf("There are no jobs in the config: %s", c)
+		}
+
+		builder.Conf, err = c.ToConfString()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return builder, nil
@@ -70,8 +72,10 @@ func (b *Builder) Build(
 	ctrs := syncmap.New[int, []string]()
 	eg, gctx := errgroup.WithContext(ctx)
 	var conf config.Conf
-	if err := json.Unmarshal([]byte(b.Conf), &conf); err != nil {
+	if c, err := config.ReadConfString(b.Conf); err != nil {
 		return nil, err
+	} else {
+		conf = c
 	}
 
 	for i, j := range conf.Jobs {

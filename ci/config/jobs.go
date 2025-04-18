@@ -1,4 +1,4 @@
-package main
+package config
 
 type Job struct {
 	// Containerfile is the path to the Dockerfile used for building the container.

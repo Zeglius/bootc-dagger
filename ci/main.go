@@ -2,19 +2,24 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"dagger/ci/config"
 	"dagger/ci/internal/dagger"
+	"dagger/ci/tmpls"
 	"dagger/ci/types/syncmap"
 	"encoding/json"
 	"fmt"
+	"text/template"
 
+	"github.com/goccy/go-yaml"
 	"golang.org/x/sync/errgroup"
 )
 
 type Ci struct{}
 
 type Builder struct {
-	Conf         ConfString
+	Conf         config.ConfString
 	BuildContext *dagger.Directory
 }
 
@@ -42,7 +47,7 @@ func (m *Ci) NewBuilder(
 		}
 
 		{
-			var s Conf
+			var s config.Conf
 			if err := json.Unmarshal([]byte(c), &s); err != nil {
 				return nil, err
 			}
@@ -64,7 +69,7 @@ func (b *Builder) Build(
 ) ([]string, error) {
 	ctrs := syncmap.New[int, []string]()
 	eg, gctx := errgroup.WithContext(ctx)
-	var conf Conf
+	var conf config.Conf
 	if err := json.Unmarshal([]byte(b.Conf), &conf); err != nil {
 		return nil, err
 	}
@@ -110,7 +115,7 @@ func (b *Builder) Build(
 }
 
 // Build a container image using the provided job configuration like build-args.
-func buildContainer(j Job, d *dagger.Directory) *dagger.Container {
+func buildContainer(j config.Job, d *dagger.Directory) *dagger.Container {
 	buildOpts := dagger.ContainerBuildOpts{}
 	if j.Containerfile != "" {
 		buildOpts.Dockerfile = j.Containerfile
@@ -137,7 +142,7 @@ func buildContainer(j Job, d *dagger.Directory) *dagger.Container {
 // Publish container images with the provided tags to a remote image
 // registry. The provided container is published with each output tag using the output
 // image name and returns the references to each published image.
-func publishImages(ctx context.Context, j Job, ctr *dagger.Container) ([]string, error) {
+func publishImages(ctx context.Context, j config.Job, ctr *dagger.Container) ([]string, error) {
 	var imgRefs []string
 	for _, t := range j.OutputTags {
 		im, err := ctr.
@@ -153,7 +158,7 @@ func publishImages(ctx context.Context, j Job, ctr *dagger.Container) ([]string,
 
 // labelAndAnnotate labels and annotations to container images.
 // Annotations and labels take the form of "name=value" strings.
-func labelAndAnnotate(j Job, ctr *dagger.Container) *dagger.Container {
+func labelAndAnnotate(j config.Job, ctr *dagger.Container) *dagger.Container {
 	// Add annotations
 	for k, v := range j.Annotations {
 		ctr = ctr.WithAnnotation(k, v)
@@ -164,4 +169,52 @@ func labelAndAnnotate(j Job, ctr *dagger.Container) *dagger.Container {
 		ctr = ctr.WithLabel(k, v)
 	}
 	return ctr
+}
+
+func (Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (config.ConfString, error) {
+
+	if _, err := cfgFile.Sync(ctx); err != nil {
+		return "", fmt.Errorf("Config file was not accessible: %w", err)
+	}
+
+	cfgContents, err := cfgFile.Contents(ctx)
+	if err != nil {
+		return "", fmt.Errorf("Config file contents could not be read: %w", err)
+	}
+	cfgFileName, err := cfgFile.Name(ctx)
+	if err != nil {
+		return "", fmt.Errorf("Config file name could not be retrieved: %w", err)
+	}
+
+	var cs bytes.Buffer
+	// Interpret templates.
+	tmpl, err := template.
+		New(cfgFileName).
+		Funcs(tmpls.TmplFuncs()).
+		Parse(cfgContents)
+	if err != nil {
+		return "", err
+	}
+	if err := tmpl.Execute(&cs, nil); err != nil {
+		return "", err
+	}
+
+	// Unmarshal config.
+	var c config.Conf
+	if err := yaml.UnmarshalWithOptions(cs.Bytes(), &c, yaml.AllowDuplicateMapKey()); err != nil {
+		return "", fmt.Errorf("Couldnt unmarshal config file %s: %w", cfgFileName, err)
+	}
+
+	// Serialize config to JSON.
+	jsonBytes, err := json.Marshal(c)
+	if err != nil {
+		return "", fmt.Errorf("Couldnt marshal config file %s: %w", cfgFileName, err)
+	}
+
+	return string(jsonBytes), nil
+
+}
+
+func (b *Builder) PrintConf() string {
+	return b.Conf
 }

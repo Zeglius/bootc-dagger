@@ -26,14 +26,3 @@ func (c Conf) ToConfString() (ConfString, error) {
 	}
 	return string(b), nil
 }
-
-// // Returns the json schema that the config file follows.
-// func (m *Ci) ConfigJsonSchema() string {
-// 	r := &jsonschema.Reflector{
-// 		KeyNamer:       strcase.KebabCase,
-// 		ExpandedStruct: true,
-// 	}
-
-// 	json, _ := r.Reflect(m.Conf).MarshalJSON()
-// 	return string(json)
-// }

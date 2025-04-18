@@ -13,6 +13,8 @@ import (
 	"text/template"
 
 	"github.com/goccy/go-yaml"
+	"github.com/invopop/jsonschema"
+	"github.com/stoewer/go-strcase"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -217,6 +219,17 @@ func (Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (config.ConfS
 
 	return string(jsonBytes), nil
 
+}
+
+// Returns the json schema that the config file follows.
+func (m *Ci) ConfigJsonSchema() string {
+	r := &jsonschema.Reflector{
+		KeyNamer:       strcase.KebabCase,
+		ExpandedStruct: true,
+	}
+
+	json, _ := r.Reflect((*config.Conf)(nil)).MarshalJSON()
+	return string(json)
 }
 
 func (b *Builder) PrintConf() string {

@@ -31,7 +31,7 @@ jobs:
           version: "latest"
           module: github.com/Zeglius/bootc-dagger/ci@main
           verb: call
-          args: --cfg-file=./bootc-ci.yaml --build-context=. run
+          args: new-builder --cfg-file=./bootc-ci.yaml --build-context=. build
           # assumes the Dagger Cloud token is in
           # a repository secret named DAGGER_CLOUD_TOKEN
           # set via the GitHub UI/CLI

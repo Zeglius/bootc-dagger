@@ -80,7 +80,7 @@ func init() {
 			return strings.ReplaceAll(s, old, new)
 		},
 
-		"join": func(sep string, elems []string) string {
+		"join": func(sep string, elems ...string) string {
 			return strings.Join(elems, sep)
 		},
 

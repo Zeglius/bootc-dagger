@@ -177,7 +177,7 @@ func labelAndAnnotate(j config.Job, ctr *dagger.Container) *dagger.Container {
 	return ctr
 }
 
-func (Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (config.ConfString, error) {
+func (m *Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (config.ConfString, error) {
 
 	if _, err := cfgFile.Sync(ctx); err != nil {
 		return "", fmt.Errorf("Config file was not accessible: %w", err)
@@ -197,6 +197,7 @@ func (Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (config.ConfS
 	tmpl, err := template.
 		New(cfgFileName).
 		Funcs(tmpls.TmplFuncs).
+		Funcs(tmpls.TmpFuncsWithCtr(ctx, dag)).
 		Parse(cfgContents)
 	if err != nil {
 		return "", err

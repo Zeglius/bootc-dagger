@@ -37,13 +37,3 @@ func TmpFuncsWithCtr(
 
 	return tmplFuncs
 }
-
-func fWithCtx[T any](ctx context.Context, f func(context.Context) (T, error)) func() (T, error) {
-	return func() (T, error) {
-		return f(ctx)
-	}
-}
-
-var (
-	_ any = fWithCtx[any]
-)

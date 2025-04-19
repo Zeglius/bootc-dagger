@@ -152,7 +152,11 @@ func publishImages(ctx context.Context, j config.Job, ctr *dagger.Container) ([]
 	var imgRefs []string
 	for _, t := range j.OutputTags {
 		im, err := ctr.
-			Publish(ctx, j.OutputName+":"+t)
+			Publish(
+				ctx,
+				j.OutputName+":"+t,
+				dagger.ContainerPublishOpts{ForcedCompression: dagger.ImageLayerCompressionZstd},
+			)
 		if err != nil {
 			return nil, err
 		}

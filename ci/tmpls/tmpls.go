@@ -155,5 +155,9 @@ func init() {
 		// },
 	}
 
+	if TmplFuncs == nil {
+		TmplFuncs = make(template.FuncMap)
+	}
+
 	maps.Copy(TmplFuncs, t)
 }

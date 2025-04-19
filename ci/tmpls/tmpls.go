@@ -84,7 +84,7 @@ func init() {
 			return strings.Join(elems, sep)
 		},
 
-		"newSlice": func(elems ...any) []any {
+		"slice": func(elems ...any) []any {
 			return elems
 		},
 

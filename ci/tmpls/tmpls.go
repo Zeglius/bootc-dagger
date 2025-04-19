@@ -88,7 +88,7 @@ func init() {
 			return elems
 		},
 
-		"map": func(elems ...any) map[any]any {
+		"dict": func(elems ...any) map[any]any {
 			// If the num of elements is not even, means we have a
 			// mismatched key-value pair.
 			if len(elems)%2 != 0 {

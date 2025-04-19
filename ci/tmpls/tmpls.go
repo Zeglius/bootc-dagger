@@ -107,6 +107,10 @@ func init() {
 			return m
 		},
 
+		"append": func(elem []any, elems ...any) []any {
+			return append(elem, elems...)
+		},
+
 		// "parseDockerRef": func(ref string) struct {
 		// 	domain string
 		// 	owner  string

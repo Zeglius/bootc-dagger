@@ -22,31 +22,16 @@ func TmpFuncsWithCtr(
 	maps.Copy(tmplFuncs, template.FuncMap{
 
 		"osRelease": func(address string) (map[string]string, error) {
-			// Create channel for results
-			type result struct {
-				data map[string]string
-				err  error
+			// Obtain contents of os-release file
+			s, err := dag.Container().
+				From(address).
+				File("/etc/os-release").
+				Contents(ctx)
+			if err != nil {
+				return nil, err
 			}
-			ch := make(chan result)
 
-			// Run container operations in goroutine
-			go func() {
-				s, err := dag.Container().
-					From(address).
-					File("/etc/os-release").
-					Contents(ctx)
-				if err != nil {
-					ch <- result{nil, err}
-					return
-				}
-
-				data, err := osrelease.ReadString(s)
-				ch <- result{data, err}
-			}()
-
-			// Wait for result
-			r := <-ch
-			return r.data, r.err
+			return osrelease.ReadString(s)
 		},
 	})
 

@@ -17,6 +17,7 @@ import (
 type ParseOpts struct {
 	TmplName  string
 	TmplFuncs []template.FuncMap
+	Data      map[string]any
 }
 
 // Parse takes a template string and returns a [config.ConfString].
@@ -45,7 +46,7 @@ func Parse(
 		return "", fmt.Errorf("Couldnt parse config template: %w", err)
 	}
 	var cs bytes.Buffer
-	t.Execute(&cs, nil)
+	t.Execute(&cs, opts.Data)
 
 	// Unmarshal config
 	var conf config.Conf

@@ -32,6 +32,8 @@ func (m *Ci) NewBuilder(
 	buildContext *dagger.Directory,
 	// +optional
 	dryRun bool, // Skip publishing
+	// +optional
+	secrets []*dagger.Secret,
 ) (*Builder, error) {
 
 	builder := &Builder{
@@ -39,7 +41,7 @@ func (m *Ci) NewBuilder(
 		BuildContext: buildContext,
 	}
 
-	if cs, err := m.parseConfFile(ctx, cfgFile); err != nil {
+	if cs, err := m.parseConfFile(ctx, cfgFile, secrets...); err != nil {
 		return nil, err
 	} else {
 		if cs == "" {
@@ -179,7 +181,7 @@ func labelAndAnnotate(j config.Job, ctr *dagger.Container) *dagger.Container {
 	return ctr
 }
 
-func (m *Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (config.ConfString, error) {
+func (m *Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File, secrets ...*dagger.Secret) (config.ConfString, error) {
 
 	if _, err := cfgFile.Sync(ctx); err != nil {
 		return "", fmt.Errorf("Config file was not accessible: %w", err)
@@ -199,6 +201,9 @@ func (m *Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (config.Co
 		TmplFuncs: []template.FuncMap{
 			tmpls.TmplFuncs,
 			tmpls.TmpFuncsWithCtr(ctx, dag),
+		},
+		Data: map[string]any{
+			"secrets": tmpls.SecretsToMap(ctx, secrets),
 		},
 	})
 

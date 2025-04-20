@@ -24,5 +24,5 @@ func (c Conf) ToConfString() (ConfString, error) {
 	if err != nil {
 		return "", err
 	}
-	return string(b), nil
+	return ConfString(b), nil
 }

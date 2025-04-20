@@ -5,6 +5,7 @@ go 1.23.6
 require (
 	github.com/99designs/gqlgen v0.17.70
 	github.com/Khan/genqlient v0.8.0
+	github.com/acobaugh/osrelease v0.1.0
 	github.com/goccy/go-yaml v1.17.1
 	github.com/vektah/gqlparser/v2 v2.5.23
 	go.opentelemetry.io/otel v1.34.0
@@ -26,7 +27,6 @@ require (
 )
 
 require (
-	github.com/acobaugh/osrelease v0.1.0 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect

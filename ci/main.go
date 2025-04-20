@@ -2,17 +2,15 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"dagger/ci/config"
 	"dagger/ci/internal/dagger"
 	"dagger/ci/tmpls"
 	"dagger/ci/types/syncmap"
-	"encoding/json"
+	"dagger/ci/utils/confparser"
 	"fmt"
 	"text/template"
 
-	"github.com/goccy/go-yaml"
 	"github.com/invopop/jsonschema"
 	"github.com/stoewer/go-strcase"
 	"golang.org/x/sync/errgroup"
@@ -196,34 +194,19 @@ func (m *Ci) parseConfFile(ctx context.Context, cfgFile *dagger.File) (config.Co
 		return "", fmt.Errorf("Config file name could not be retrieved: %w", err)
 	}
 
-	var cs bytes.Buffer
-	// Interpret templates.
-	tmpl, err := template.
-		New(cfgFileName).
-		Funcs(tmpls.TmplFuncs).
-		Funcs(tmpls.TmpFuncsWithCtr(ctx, dag)).
-		Parse(cfgContents)
+	confStr, err := confparser.Parse(cfgContents, confparser.ParseOpts{
+		TmplName: cfgFileName,
+		TmplFuncs: []template.FuncMap{
+			tmpls.TmplFuncs,
+			tmpls.TmpFuncsWithCtr(ctx, dag),
+		},
+	})
+
 	if err != nil {
 		return "", err
 	}
-	if err := tmpl.Execute(&cs, nil); err != nil {
-		return "", err
-	}
 
-	// Unmarshal config.
-	var c config.Conf
-	if err := yaml.UnmarshalWithOptions(cs.Bytes(), &c, yaml.AllowDuplicateMapKey()); err != nil {
-		return "", fmt.Errorf("Couldnt unmarshal config file %s: %w", cfgFileName, err)
-	}
-
-	// Serialize config to JSON.
-	jsonBytes, err := json.Marshal(c)
-	if err != nil {
-		return "", fmt.Errorf("Couldnt marshal config file %s: %w", cfgFileName, err)
-	}
-
-	return string(jsonBytes), nil
-
+	return confStr, nil
 }
 
 // Returns the json schema that the config file follows.
@@ -235,8 +218,4 @@ func (m *Ci) ConfigJsonSchema() string {
 
 	json, _ := r.Reflect((*config.Conf)(nil)).MarshalJSON()
 	return string(json)
-}
-
-func (b *Builder) PrintConf() string {
-	return b.Conf
 }

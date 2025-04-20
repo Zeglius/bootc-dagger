@@ -12,7 +12,6 @@ import (
 	"maps"
 
 	"github.com/google/uuid"
-
 )
 
 // [template.FuncMap] with functions used in tag templates.
@@ -124,7 +123,27 @@ func init() {
 			if s == "" {
 				return ""
 			}
-			return strings.ToUpper(string(s[0]))+s[1:]
+			return strings.ToUpper(string(s[0])) + s[1:]
+		},
+
+		"default": func(defaultV any, input any) any {
+			switch input.(type) {
+			case nil:
+				return defaultV
+			case int:
+				if input == 0 {
+					return defaultV
+				}
+			case string:
+				if input == "" {
+					return defaultV
+				}
+			case float64:
+				if input == 0.0 {
+					return defaultV
+				}
+			}
+			return input
 		},
 
 		// "parseDockerRef": func(ref string) struct {

@@ -33,10 +33,7 @@ func SecretsToMap(ctx context.Context, secrets []*dagger.Secret) map[string]stri
 				name = matches[1]
 			}
 
-			value, err := s.Plaintext(ctx)
-			if err != nil {
-				return nil
-			}
+			value, _ := s.Plaintext(ctx)
 
 			secretsMap[name] = value
 		}

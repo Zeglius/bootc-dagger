@@ -3,6 +3,7 @@ package tmpls
 import (
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"regexp"
 	"sort"
 	"strings"
@@ -84,6 +85,10 @@ func init() {
 			return strings.Join(elems, sep)
 		},
 
+		"chomp": func(s string) string {
+			return strings.TrimRight(s, "\n\r")
+		},
+
 		"split": func(sep string, s string) []string {
 			return strings.Split(s, sep)
 		},
@@ -121,6 +126,13 @@ func init() {
 			}
 
 			return m
+		},
+
+		"index": func(index int, elems []any) (any, error) {
+			if index < 0 || index >= len(elems) {
+				return nil, errors.New("index out of range")
+			}
+			return elems[index], nil
 		},
 
 		"append": func(elem []any, elems ...any) []any {

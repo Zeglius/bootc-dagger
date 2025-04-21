@@ -17,11 +17,6 @@ import (
 // [template.FuncMap] with functions used in tag templates.
 var TmplFuncs template.FuncMap
 
-type keyVals struct {
-	Key    any
-	Values []any
-}
-
 func init() {
 	t := template.FuncMap{
 
@@ -126,13 +121,6 @@ func init() {
 			}
 
 			return m
-		},
-
-		"keyVals": func(key any, values ...any) keyVals {
-			res := keyVals{}
-			res.Key = key
-			copy(res.Values, values)
-			return res
 		},
 
 		"append": func(elem []any, elems ...any) []any {

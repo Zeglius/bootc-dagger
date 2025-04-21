@@ -135,6 +135,13 @@ func init() {
 			return elems[index], nil
 		},
 
+		"fields": func(sep string, line string) (map[string]string, error) {
+			res := make(map[string]string)
+			k, v, _ := strings.Cut(line, sep)
+			res[k] = v
+			return res, nil
+		},
+
 		"append": func(elem []any, elems ...any) []any {
 			return append(elem, elems...)
 		},

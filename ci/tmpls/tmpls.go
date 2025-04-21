@@ -84,6 +84,10 @@ func init() {
 			return strings.Join(elems, sep)
 		},
 
+		"split": func(sep string, s string) []string {
+			return strings.Split(s, sep)
+		},
+
 		"slice": func(elems ...any) []any {
 			return elems
 		},

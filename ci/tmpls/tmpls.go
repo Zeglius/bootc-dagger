@@ -88,6 +88,18 @@ func init() {
 			return strings.Split(s, sep)
 		},
 
+		"splitN": func(sep string, n int, s string) []string {
+			return strings.SplitN(s, sep, n)
+		},
+
+		"first": func(s string) string {
+			return strings.Split(s, "=")[0]
+		},
+
+		"last": func(s string) string {
+			return strings.Split(s, "=")[1]
+		},
+
 		"slice": func(elems ...any) []any {
 			return elems
 		},

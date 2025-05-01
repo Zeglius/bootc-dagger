@@ -10,6 +10,7 @@ import (
 	"dagger/ci/utils/confparser"
 	"fmt"
 	"text/template"
+	"time"
 
 	"github.com/invopop/jsonschema"
 	"github.com/stoewer/go-strcase"
@@ -70,7 +71,23 @@ func (b *Builder) Build(
 	ctx context.Context,
 	// +optional
 	dryRun bool,
+	// Set a time limit for how much an build job should take.
+	// If is set to less or equal to "0s", no timeout will be applied.
+	// +default="0s"
+	timeout string,
 ) ([]string, error) {
+
+	tmout, err := time.ParseDuration(timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	cancel := func() {}
+	if tmout > time.Duration(0) {
+		ctx, cancel = context.WithTimeoutCause(ctx, tmout, fmt.Errorf("Timeout exceeded: %s", tmout))
+	}
+	defer cancel()
+
 	ctrs := syncmap.New[int, []string]()
 	eg, gctx := errgroup.WithContext(ctx)
 	var conf config.Conf

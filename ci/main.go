@@ -155,7 +155,6 @@ func publishImages(ctx context.Context, j config.Job, ctr *dagger.Container) ([]
 			Publish(
 				ctx,
 				j.OutputName+":"+t,
-				dagger.ContainerPublishOpts{ForcedCompression: dagger.ImageLayerCompressionZstd},
 			)
 		if err != nil {
 			return nil, err

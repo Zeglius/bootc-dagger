@@ -9,6 +9,7 @@ import (
 	"dagger/ci/types/syncmap"
 	"dagger/ci/utils/confparser"
 	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/invopop/jsonschema"
@@ -154,7 +155,7 @@ func publishImages(ctx context.Context, j config.Job, ctr *dagger.Container) ([]
 		im, err := ctr.
 			Publish(
 				ctx,
-				j.OutputName+":"+t,
+				strings.ToLower(j.OutputName+":"+t),
 			)
 		if err != nil {
 			return nil, err

@@ -9,6 +9,7 @@ import (
 	"dagger/ci/config"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"text/template"
 
 	"github.com/goccy/go-yaml"
@@ -52,6 +53,14 @@ func Parse(
 	var conf config.Conf
 	if err := yaml.UnmarshalWithOptions(cs.Bytes(), &conf, yaml.AllowDuplicateMapKey()); err != nil {
 		return "", fmt.Errorf("Couldnt unmarshal config file %s: %w", opts.TmplName, err)
+	}
+
+	// Lowercase registry
+	{
+		old_conf := conf
+		for ji, job := range old_conf.Jobs {
+			conf.Jobs[ji].OutputName = strings.ToLower(job.OutputName)
+		}
 	}
 
 	// Serialize config to json

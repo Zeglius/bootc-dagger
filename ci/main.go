@@ -89,12 +89,6 @@ func (b *Builder) Build(
 			)
 			ctr = buildContainer(j, b.BuildContext)
 			ctr = labelAndAnnotate(j, ctr)
-			// Necessary in order to trigger the container BuildContext
-			// inside the coroutine.
-			ctr, err = ctr.Sync(gctx)
-			if err != nil {
-				return err
-			}
 
 			refs := make([]string, len(conf.Jobs))
 			if !dryRun {
